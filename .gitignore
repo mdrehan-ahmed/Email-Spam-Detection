@@ -1,0 +1,32 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# VS Code and operating-system files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+tempCodeRunnerFile.py
+
+# Test and notebook cache
+.pytest_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
