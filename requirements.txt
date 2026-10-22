@@ -1,6 +1,6 @@
-streamlit
+streamlit>=1.39,<2
 pandas
-scikit-learn
-easyocr
-pillow
 numpy
+scikit-learn
+pillow
+easyocr

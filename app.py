@@ -312,20 +312,26 @@ def analyze_text(text):
         return "--", "--", "--", "ℹ️ TOO SHORT! Please provide a longer sentence or full email.", "#3b82f6"
 
     text_vectorized = vectorizer.transform([text])
-    prediction = model.predict(text_vectorized)[0]
     probabilities = model.predict_proba(text_vectorized)[0]
     prob_ham, prob_spam = probabilities[0], probabilities[1]
-    result = (
-        "🚨 SPAM DETECTED BY AI! The text matches known spam patterns."
-        if prediction == 1
-        else "✅ AUTHENTIC EMAIL! The text appears likely to be legitimate."
-    )
+    spam_percent = prob_spam * 100
+
+    if spam_percent >= 60:
+        result = "🚨 LIKELY SPAM! The text matches several spam-like patterns."
+        result_color = "#ef4444"
+    elif spam_percent <= 40:
+        result = "✅ LIKELY AUTHENTIC! The text appears likely to be legitimate."
+        result_color = "#10b981"
+    else:
+        result = "⚠️ UNCERTAIN! The result is borderline. Please verify the sender and links."
+        result_color = "#f59e0b"
+
     return (
-        f"{prob_spam * 100:.1f}%",
+        f"{spam_percent:.1f}%",
         f"{int(prob_ham * 100)}/100",
         f"{max(prob_ham, prob_spam) * 100:.1f}%",
         result,
-        "#ef4444" if prediction == 1 else "#10b981",
+        result_color,
     )
 
 def render_result(title, result):
@@ -364,7 +370,8 @@ def render_batch_summary(batch_results):
         return
     total = len(batch_results)
     spam_count = sum(row["prediction"] == "Spam" for row in batch_results)
-    authentic_count = total - spam_count
+    authentic_count = sum(row["prediction"] == "Authentic" for row in batch_results)
+    uncertain_count = sum(row["prediction"] == "Uncertain" for row in batch_results)
     confidence_values = [row["confidence"] for row in batch_results]
     average_confidence = sum(confidence_values) / total
 
@@ -377,7 +384,7 @@ def render_batch_summary(batch_results):
     with s3:
         st.markdown(f'<div class="metric-card"><div class="metric-title">✅ Authentic</div><div class="metric-value">{authentic_count}</div></div>', unsafe_allow_html=True)
     with s4:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">📊 Avg. Confidence</div><div class="metric-value">{average_confidence:.1f}%</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">⚠️ Uncertain / Avg.</div><div class="metric-value">{uncertain_count} / {average_confidence:.1f}%</div></div>', unsafe_allow_html=True)
 
     # Visual dashboard based on the actual batch results.
     st.markdown("<h3 style='color:#f3f4f6; margin-top:24px;'>📈 Batch Charts Dashboard</h3>", unsafe_allow_html=True)
@@ -395,8 +402,8 @@ def render_batch_summary(batch_results):
     chart_col1, chart_col2 = st.columns(2)
     with chart_col1:
         prediction_counts = pd.DataFrame({
-            "Prediction": ["Spam", "Authentic"],
-            "Emails": [spam_count, authentic_count],
+            "Prediction": ["Spam", "Authentic", "Uncertain"],
+            "Emails": [spam_count, authentic_count, uncertain_count],
         }).set_index("Prediction")
         st.markdown("**Spam vs Authentic**")
         prediction_event = st.vega_lite_chart(
@@ -549,7 +556,11 @@ if analyze_btn:
                         confidence_value = 0.0
                     batch_results.append({
                         "file": title,
-                        "prediction": "Spam" if spam_probability_value >= 50 else "Authentic",
+                        "prediction": (
+                            "Spam" if spam_probability_value >= 60
+                            else "Authentic" if spam_probability_value <= 40
+                            else "Uncertain"
+                        ),
                         "spam_probability": spam_probability_value,
                         "confidence": confidence_value,
                     })

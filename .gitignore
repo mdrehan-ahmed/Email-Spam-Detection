@@ -14,16 +14,18 @@ ENV/
 !.env.example
 .streamlit/secrets.toml
 
-# VS Code and operating-system files
+# IDE and OS files
 .vscode/
+.idea/
 .DS_Store
 Thumbs.db
 
-# Logs and temporary files
+# Logs, temporary files, and local outputs
 *.log
 *.tmp
 *.temp
 tempCodeRunnerFile.py
+*.zip
 
 # Test and notebook cache
 .pytest_cache/
